@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import db from '../db/firestore';
 
 const FoodDetectorScreen = () => {
   const [image, setImage] = useState(null);
@@ -52,21 +55,73 @@ const FoodDetectorScreen = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setClassification(response.data);
+
+      const predictedFood = response.data;
+      setClassification(predictedFood);
+
+      // Check if the predicted food is in the database
+      const foodDetailsQuery = query(collection(db, 'foodDetails'), where('name', '==', predictedFood));
+      const customMealsQuery = query(collection(db, 'customMeals'), where('name', '==', predictedFood));
+      const foodDetailsSnapshot = await getDocs(foodDetailsQuery);
+      const customMealsSnapshot = await getDocs(customMealsQuery);
+
+      let foodItem = null;
+      if (!foodDetailsSnapshot.empty) {
+        foodItem = foodDetailsSnapshot.docs[0].data();
+      } else if (!customMealsSnapshot.empty) {
+        foodItem = customMealsSnapshot.docs[0].data();
+      }
+
+      if (foodItem) {
+        await logFood(foodItem);
+      } else {
+        Alert.alert('No match found', 'The detected food item is not in the database.');
+      }
     } catch (error) {
       console.error('Error classifying image:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-      } else if (error.request) {
-        console.error('Request data:', error.request);
-      } else {
-        console.error('Error message:', error.message);
-      }
       setClassification('Error classifying image');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const logFood = async (foodItem) => {
+    const mealType = getMealType();
+    const auth = getAuth();
+    const user = auth.currentUser;
+    const uid = user ? user.uid : null;
+
+    if (!uid) {
+      Alert.alert('Error', 'You must be logged in to log food.');
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'foodLog'), {
+        uid: uid,
+        calories: foodItem.calories,
+        fat: foodItem.fat,
+        carbohydrate: foodItem.carbohydrate,
+        protein: foodItem.protein,
+        mealType,
+        name: foodItem.name,
+        date: serverTimestamp(),
+      });
+      Alert.alert('Success', 'The food has been logged successfully.');
+    } catch (error) {
+      console.error('Error logging food:', error);
+      Alert.alert('Error', 'There was a problem logging the food.');
+    }
+  };
+
+  const getMealType = () => {
+    const currentHour = new Date().getHours();
+    if (currentHour < 11) {
+      return 'Breakfast';
+    } else if (currentHour >= 11 && currentHour < 16) {
+      return 'Lunch';
+    } else {
+      return 'Dinner';
     }
   };
 
@@ -85,7 +140,7 @@ const FoodDetectorScreen = () => {
       {image && <Image source={{ uri: image }} style={styles.image} />}
       {classification && (
         <View style={styles.resultBox}>
-          <Text style={styles.resultText}>Predicted class: {classification}</Text>
+          <Text style={styles.resultText}>{classification}</Text>
         </View>
       )}
     </View>
