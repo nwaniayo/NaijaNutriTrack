@@ -1,6 +1,6 @@
-# FitProject
+# NaijaNutriTrack
 
-FitProject is a mobile application built with React Native and Expo, designed to help users track their food intake, monitor their nutritional values, and manage their dietary goals. The app integrates with Firebase for authentication and data storage, and it utilizes various libraries for enhanced functionality.
+NaijaNutriTrack is a mobile application built with React Native and Expo, designed to help users track their food intake, monitor their nutritional values, and manage their dietary goals. The app integrates with Firebase for authentication and data storage, and it utilizes various libraries for enhanced functionality.
 
 ## Features
 
@@ -26,7 +26,7 @@ FitProject is a mobile application built with React Native and Expo, designed to
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/fitproject.git
+   git clone https://github.com/nwaniayo/NaijaNutriTrack.git
    cd fitproject
    ```
 
@@ -54,7 +54,7 @@ FitProject is a mobile application built with React Native and Expo, designed to
 ## Folder Structure
 
 ```
-fitproject/
+NaijaNutriTrack/
 ├── src/
 │   ├── components/          # Reusable components
 │   ├── db/                  # Firebase configuration
